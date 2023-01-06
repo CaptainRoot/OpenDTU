@@ -17,12 +17,21 @@
 #include <Hoymiles.h>
 #include <LittleFS.h>
 
+#ifdef OLED_DISPLAY
+#include "OledDisplay.h"
+#endif
+
 void setup()
 {
     // Initialize serial output
     Serial.begin(SERIAL_BAUDRATE);
     while (!Serial)
         yield();
+
+    #ifdef OLED_DISPLAY
+    OledDisplay.init();
+    #endif
+
     MessageOutput.println();
     MessageOutput.println(F("Starting OpenDTU"));
 
@@ -147,4 +156,9 @@ void loop()
     yield();
     MessageOutput.loop();
     yield();
+
+    #ifdef OLED_DISPLAY
+    OledDisplay.loop();
+    yield();
+    #endif
 }
