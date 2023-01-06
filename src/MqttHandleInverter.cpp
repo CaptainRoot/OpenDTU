@@ -17,7 +17,7 @@
 MqttHandleInverterClass MqttHandleInverter;
 
 void MqttHandleInverterClass::init()
-{
+{   
     using std::placeholders::_1;
     using std::placeholders::_2;
     using std::placeholders::_3;
