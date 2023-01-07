@@ -12,10 +12,13 @@
         void loop();
 
     private:
-        uint32_t _lastPublish;
+        uint32_t _lastInvUpdateCheck = 0;
+        uint32_t _lastPublish = 0;
+        uint32_t _newestInverterTimestamp = 0;
 
         void DrawStartingOpenDTU();
         void DrawWaitingForSun();
+        void DrawDataScreen();
     };
 
     extern OledDisplayClass OledDisplay;

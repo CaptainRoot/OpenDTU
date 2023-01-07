@@ -55,24 +55,37 @@ void OledDisplayClass::init()
 
 void OledDisplayClass::loop()
 {
+    /*
     if (Hoymiles.getRadio()->isIdle()) {
         DrawWaitingForSun();
         return;
     }
+    */
 
+    if (millis() - _lastInvUpdateCheck < 1000) {
+        return;
+    }
+    _lastInvUpdateCheck = millis();
+
+    uint32_t maxTimeStamp = 0;
+    for (uint8_t i = 0; i < Hoymiles.getNumInverters(); i++) {
+        auto inv = Hoymiles.getInverterByPos(i);
+
+        if (inv == nullptr) {
+            continue;
+        }
+
+        if (inv->Statistics()->getLastUpdate() > maxTimeStamp) {
+            maxTimeStamp = inv->Statistics()->getLastUpdate();
+        }
+    }
+
+    // Update on every inverter change or at least after Dtu_PollInterval seconds
     const CONFIG_T& config = Configuration.get();
 
-    if (millis() - _lastPublish > (config.Dtu_PollInterval * 1000))
-    {
-        char fmtText[32];
+    if (millis() - _lastPublish > (config.Dtu_PollInterval * 1000) || (maxTimeStamp != _newestInverterTimestamp)) {
 
-        _display.clear();
-        _display.setBrightness(63);
-        _display.drawXbm(10,5,8,17,bmp_flash);
-        _display.setFont(ArialMT_Plain_24);
-        sprintf(fmtText,"%3.0f", 123.65);
-        _display.drawString(25,0,String(fmtText)+F(" W"));
-        _display.display();
+        DrawDataScreen();
 
         _lastPublish = millis();
     }
@@ -92,11 +105,57 @@ void OledDisplayClass::DrawStartingOpenDTU()
 void OledDisplayClass::DrawWaitingForSun()
 {
     _display.clear();
+    _display.setBrightness(1);
     _display.setFont(ArialMT_Plain_24);
     _display.setTextAlignment(TEXT_ALIGN_CENTER);
 
     _display.drawString(64,4,"Inverter");
     _display.drawString(64,32,"Offline");
+    _display.display();
+}
+
+void OledDisplayClass::DrawDataScreen()
+{
+    float totalPower = 587.0;
+    float totalYieldDay = 291.0;
+    float totalYieldTotal = 2.843999863;
+
+    char fmtText[64];
+
+    int  numInv = Hoymiles.getNumInverters();
+    // Loop all inverters
+    for (uint8_t i = 0; i < numInv; i++) {
+        auto inv = Hoymiles.getInverterByPos(i);
+        if (inv == nullptr) {
+            continue;
+        }
+
+        if (inv->Statistics()->getLastUpdate() > _newestInverterTimestamp) {
+            _newestInverterTimestamp = inv->Statistics()->getLastUpdate();
+        }
+
+        totalPower += inv->Statistics()->getChannelFieldValue(CH0, FLD_PAC);
+        totalYieldDay += inv->Statistics()->getChannelFieldValue(CH0, FLD_YD);
+        totalYieldTotal += inv->Statistics()->getChannelFieldValue(CH0, FLD_YT);
+    }
+
+    _display.clear();
+    _display.setTextAlignment(TEXT_ALIGN_LEFT);
+
+    //Draw acutal power
+    _display.drawXbm(10,5,8,17,bmp_flash);
+    _display.setFont(ArialMT_Plain_24);
+    sprintf(fmtText,"%3.0f W",totalPower);
+    _display.drawString(37,0, fmtText);
+
+    //draw today & total
+    _display.setFont(ArialMT_Plain_16);
+    sprintf(fmtText,"today %4.0f Wh",totalYieldDay);
+    _display.drawString(5,26, fmtText);
+
+    sprintf(fmtText,"total %.1f kWh",totalYieldTotal);
+    _display.drawString(5,39,fmtText);
+
     _display.display();
 }
 
