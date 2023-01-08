@@ -176,6 +176,10 @@ void OledDisplayClass::loop()
 
     if (millis() - _lastPublish > (config.Dtu_PollInterval * 1000) || (maxTimeStamp != _newestInverterTimestamp))
     {
+        float tmpTotalPower = 0.0;
+        float tmpTotalYieldDay = 0.0;
+        float tmpTotalYieldTotal = 0.0;
+        
         int numInv = Hoymiles.getNumInverters();
         // Loop all inverters
         for (uint8_t i = 0; i < numInv; i++) {
@@ -188,10 +192,15 @@ void OledDisplayClass::loop()
                 _newestInverterTimestamp = inv->Statistics()->getLastUpdate();
             }
 
-            this->totalPower += inv->Statistics()->getChannelFieldValue(CH0, FLD_PAC);
-            this->totalYieldDay += inv->Statistics()->getChannelFieldValue(CH0, FLD_YD);
-            this->totalYieldTotal += inv->Statistics()->getChannelFieldValue(CH0, FLD_YT);
+            tmpTotalPower += inv->Statistics()->getChannelFieldValue(CH0, FLD_PAC);
+            tmpTotalYieldDay += inv->Statistics()->getChannelFieldValue(CH0, FLD_YD);
+            tmpTotalYieldTotal += inv->Statistics()->getChannelFieldValue(CH0, FLD_YT);
         }
+
+        this->totalPower = tmpTotalPower;
+        this->totalYieldDay = tmpTotalYieldDay;
+        this->totalYieldTotal = tmpTotalYieldTotal;
+
         _lastPublish = millis();
     }
 }
